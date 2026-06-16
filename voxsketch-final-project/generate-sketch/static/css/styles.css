@@ -1,0 +1,275 @@
+:root{
+  --bg: #f4f7f9;
+  --card: #ffffff;
+  --muted: #6b7280;
+  --accent: #2563eb;
+  --danger: #ef4444;
+  --shadow: 0 12px 30px rgba(16,24,40,0.08);
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  background: var(--bg);
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding:40px;
+  color:#111827;
+  min-height:100vh;
+}
+
+.card{
+  width: min(1100px, 96%);
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  padding:26px;
+  display:grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap:24px;
+  align-items:flex-start;
+}
+
+/* Header */
+header{
+  display:flex;
+  gap:14px;
+  align-items:center;
+  margin-bottom: 18px;
+}
+.logo{
+  width:48px; height:48px; border-radius:10px;
+  background: linear-gradient(135deg,var(--accent), #7c3aed);
+  color:white; display:flex;align-items:center;justify-content:center;
+  font-family:'Playfair Display';font-weight:bold;font-size:18px;
+}
+h1{
+  font-family:'Playfair Display';
+  font-size:22px;
+  margin:0;
+}
+.subtitle{
+  font-size:13px;
+  color:var(--muted);
+}
+
+/* Prompt + dialogue area */
+.prompt-area{
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 18px 20px;
+  min-height: 210px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+#interview-prompt{
+  font-size: 1.35rem;
+  margin: 0 0 10px;
+  color: #0f172a;
+  font-weight: 600;
+}
+#transcript{
+  font-style: italic;
+  color: var(--muted);
+  min-height: 22px;
+  margin:2px 0 0;
+}
+
+/* Listening pill */
+.listening-pill{
+  margin-top: 10px;
+  display:none;
+  align-items:center;
+  gap:6px;
+  font-size:12px;
+  padding:6px 10px;
+  border-radius:999px;
+  background:rgba(37,99,235,0.08);
+  color:#1d4ed8;
+}
+.pill-dot{
+  width:7px;height:7px;border-radius:999px;background:#2563eb;
+  animation:pulseDot 1.4s infinite;
+}
+@keyframes pulseDot{
+  0%{transform:scale(1);opacity:0.7;}
+  50%{transform:scale(1.4);opacity:1;}
+  100%{transform:scale(1);opacity:0.7;}
+}
+
+/* Buttons / controls */
+.controls{
+  margin-top: 18px;
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+.btn{
+  padding: 11px 18px;
+  border-radius: 9px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-size:14px;
+  transition:transform .12s, box-shadow .12s, background .12s;
+}
+.btn.secondary{
+  background:#e2e8f0;
+  color:#334155;
+}
+.btn.small{
+  padding:8px 12px;
+  font-size:12px;
+}
+.btn:disabled{
+  opacity:0.5;
+  cursor:not-allowed;
+}
+.btn.is-listening{
+  background:#1d4ed8;
+  box-shadow:0 0 0 0 rgba(37,99,235,0.45);
+  animation:micPulse 1.5s infinite;
+}
+@keyframes micPulse{
+  0%{box-shadow:0 0 0 0 rgba(37,99,235,0.45);}
+  70%{box-shadow:0 0 0 12px rgba(37,99,235,0);}
+  100%{box-shadow:0 0 0 0 rgba(37,99,235,0);}
+}
+
+/* Visual options */
+#visual-options{
+  display:none;
+  margin-top:16px;
+}
+.visual-title{
+  font-size:1rem;
+  margin:10px 0 4px;
+}
+.visual-help{
+  font-size:12px;
+  color:var(--muted);
+  margin:0 0 6px;
+}
+.options-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill,minmax(100px,1fr));
+  gap:10px;
+  margin-top:10px;
+}
+.option-card{
+  border:2px solid #e2e8f0;
+  border-radius:8px;
+  overflow:hidden;
+  cursor:pointer;
+  background:white;
+  transition:all .18s;
+}
+.option-card:hover{
+  border-color:var(--accent);
+  transform:translateY(-2px);
+  box-shadow:0 4px 12px rgba(15,23,42,0.18);
+}
+.option-card img{
+  width:100%;
+  height:100px;
+  object-fit:contain;
+  background:#f1f5f9;
+  display:block;
+}
+.option-card span{
+  display:block;
+  padding:4px 6px 6px;
+  font-size:12px;
+  text-align:center;
+  font-weight:500;
+}
+
+/* Preview side */
+.preview-col{
+  background:#f1f5f9;
+  border-radius:12px;
+  padding:18px 18px 16px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  min-height:480px;
+}
+.preview-title{
+  margin:0 0 6px;
+}
+#preview-note{
+  color:var(--muted);
+  font-size:13px;
+  margin-bottom:12px;
+  text-align:center;
+}
+#resultImage{
+  width:100%;
+  max-width:340px;
+  border-radius:10px;
+  background:white;
+  border:1px solid #e2e8f0;
+  box-shadow:0 8px 20px rgba(15,23,42,0.16);
+  display:none;
+  object-fit:contain;
+}
+#resultImage.visible{
+  display:block;
+}
+.preview-actions{
+  margin-top:10px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+
+/* meta row */
+.meta-row{
+  margin-top:6px;
+  font-size:12px;
+  color:var(--muted);
+  display:flex;
+  width:100%;
+  justify-content:space-between;
+}
+.browser-hint{
+  font-size:11px;
+}
+
+/* Mic button styles */
+#micButton { display:inline-flex; align-items:center; gap:8px; }
+#micButton .mic-icon{ font-size:14px; }
+
+/* Mic listening visual state - highlight the mic button */
+#micButton.listening {
+  background: linear-gradient(90deg, rgba(37,99,235,0.12), rgba(124,58,237,0.04));
+  box-shadow: 0 0 0 6px rgba(37,99,235,0.06);
+  color: #1d4ed8;
+  border-color: rgba(37,99,235,0.18);
+  transform: translateY(-1px);
+}
+
+/* Make sure the listening pill is visible and stands out when active */
+.listening-pill { transition:opacity .12s; opacity:1; }
+
+
+/* Responsive */
+@media(max-width:900px){
+  .card{
+    grid-template-columns:1fr;
+  }
+  .preview-col{
+    order:-1;
+    min-height:360px;
+  }
+}

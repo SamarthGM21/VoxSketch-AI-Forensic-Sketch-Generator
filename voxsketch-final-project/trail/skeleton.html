@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoxSketch Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f3f4f6; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Canvas Elements */
+        .feature-container.active { 
+            outline: 2px solid #22c55e; /* VoxSketch Green */
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.3); 
+        }
+        .feature-container .resize-handle { display: none; }
+        .feature-container.active .resize-handle { display: block; }
+        
+        /* Mic Animation */
+        #mic-button.listening { animation: pulse 1.5s infinite; background-color: #ef4444; }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
+        /* Sidebar Styling */
+        .sidebar-btn { text-align: left; padding-left: 1.5rem; position: relative; color: #9ca3af; }
+        .sidebar-btn:hover { color: white; background-color: rgba(255,255,255,0.05); }
+        .sidebar-btn.active { background-color: #22c55e; color: #111827; font-weight: 600; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4); }
+        
+        /* Range Inputs */
+        input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; background: #e5e7eb; border-radius: 5px; outline: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; background: #111827; border-radius: 50%; cursor: pointer; border: 2px solid #22c55e; }
+    </style>
+</head>
+<body class="flex h-screen bg-gray-50 overflow-hidden text-gray-800">
+
+    <nav class="w-64 bg-[#111827] flex flex-col shadow-2xl z-20">
+        <div class="p-6 border-b border-gray-800 flex items-center gap-2">
+             <span class="text-2xl font-bold text-white tracking-tight">Vox<span class="text-[#22c55e]">Sketch</span></span>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto py-4 space-y-1">
+            <p class="px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Features</p>
+            <button data-category="head" onclick="showCategory('head')" class="sidebar-btn w-full p-3 transition-all duration-200">Head Shape</button>
+            <button data-category="hairstyle" onclick="showCategory('hairstyle')" class="sidebar-btn w-full p-3 transition-all duration-200">Hairstyle</button>
+            <button data-category="eyebrows" onclick="showCategory('eyebrows')" class="sidebar-btn w-full p-3 transition-all duration-200">Eyebrows</button>
+            <button data-category="eyes" onclick="showCategory('eyes')" class="sidebar-btn w-full p-3 transition-all duration-200">Eyes</button>
+            <button data-category="nose" onclick="showCategory('nose')" class="sidebar-btn w-full p-3 transition-all duration-200">Nose</button>
+            <button data-category="lips" onclick="showCategory('lips')" class="sidebar-btn w-full p-3 transition-all duration-200">Lips</button>
+            <button data-category="ears" onclick="showCategory('ears')" class="sidebar-btn w-full p-3 transition-all duration-200">Ears</button>
+            <button data-category="mustache" onclick="showCategory('mustache')" class="sidebar-btn w-full p-3 transition-all duration-200">Mustache</button>
+            <button data-category="beard" onclick="showCategory('beard')" class="sidebar-btn w-full p-3 transition-all duration-200">Beard</button>
+            <button data-category="forehead" onclick="showCategory('forehead')" class="sidebar-btn w-full p-3 transition-all duration-200">Forehead Details</button>
+            <button data-category="cheek" onclick="showCategory('cheek')" class="sidebar-btn w-full p-3 transition-all duration-200">Cheek Details</button>
+        </div>
+        
+        <div class="p-4 border-t border-gray-800">
+            <a href="index.html" class="flex items-center gap-2 text-gray-400 hover:text-white transition text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12" /></svg>
+                Exit Studio
+            </a>
+        </div>
+    </nav>
+
+    <main class="flex-1 flex flex-col relative">
+        
+        <div class="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between shadow-sm z-10">
+            
+            <div class="flex items-center gap-3">
+                <button onclick="saveSketch()" class="flex items-center gap-2 px-5 py-2 bg-[#111827] text-white rounded-full font-medium hover:bg-[#22c55e] hover:shadow-lg transition-all transform hover:-translate-y-0.5 text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                    Download Sketch
+                </button>
+
+                <div class="h-6 w-px bg-gray-300 mx-2"></div>
+
+                <button id="undo-btn" onclick="undo()" title="Undo" class="p-2 text-gray-500 hover:text-[#111827] hover:bg-gray-100 rounded-lg transition disabled:opacity-30">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" /></svg>
+                </button>
+                <button id="redo-btn" onclick="redo()" title="Redo" class="p-2 text-gray-500 hover:text-[#111827] hover:bg-gray-100 rounded-lg transition disabled:opacity-30">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3" /></svg>
+                </button>
+
+                <div class="h-6 w-px bg-gray-300 mx-2"></div>
+
+                <button onclick="toggleAdjustmentsPanel()" title="Adjustments & Layers" class="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 border border-gray-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" /></svg>
+                    Layers
+                </button>
+                
+                <button onclick="deleteActiveElement()" title="Delete Selected" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+                </button>
+                <button onclick="resetCanvas()" title="Clear Canvas" class="p-2 text-gray-400 hover:text-red-500 hover:bg-gray-50 rounded-lg transition">
+                   <span class="text-xs font-bold uppercase">Reset</span>
+                </button>
+            </div>
+
+            <div class="flex items-center gap-4 bg-gray-50 pl-4 pr-1 py-1 rounded-full border border-gray-200">
+                <div id="status" class="text-gray-500 italic text-sm whitespace-nowrap overflow-hidden max-w-[150px]">Click mic to speak...</div>
+                <button id="mic-button" onclick="toggleListening()" class="w-9 h-9 bg-[#22c55e] text-[#111827] rounded-full flex items-center justify-center hover:bg-green-400 shadow-md transition-all">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M7 4a3 3 0 016 0v6a3 3 0 11-6 0V4zM3 8a1 1 0 011-1h1a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V8zM17 8a1 1 0 00-1-1h-1a1 1 0 00-1 1v2a1 1 0 001 1h1a1 1 0 001-1V8zM10 15a4 4 0 004-4h-1.5a2.5 2.5 0 01-5 0H6a4 4 0 004 4z"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="flex-1 bg-gray-100 p-8 flex items-center justify-center overflow-hidden">
+            <div id="canvas-area" class="w-full h-full max-w-4xl bg-white rounded-xl shadow-lg relative overflow-hidden border border-gray-200">
+                <div class="absolute inset-0 pointer-events-none opacity-5 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:20px_20px]"></div>
+            </div>
+        </div>
+    </main>
+
+    <aside class="w-80 bg-white border-l border-gray-200 flex flex-col z-10">
+        <div class="p-4 border-b border-gray-100 bg-gray-50">
+            <h3 id="options-label" class="font-bold text-[#111827] text-sm uppercase tracking-wider text-center">Choose Assets</h3>
+        </div>
+        <div class="flex-1 overflow-y-auto p-4">
+            <div id="options-grid" class="grid grid-cols-3 gap-3">
+                </div>
+        </div>
+    </aside>
+
+    <div id="adjustment-panel" class="hidden absolute top-24 left-72 w-64 bg-white/90 backdrop-blur-md rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden">
+        <div id="panel-header" class="p-3 bg-[#111827] cursor-move flex justify-between items-center">
+            <h4 class="font-semibold text-white text-sm">Editor Tools</h4>
+            <button onclick="toggleAdjustmentsPanel()" title="Close" class="text-gray-400 hover:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        
+        <div class="flex border-b border-gray-200">
+            <button id="tab-adjust" class="flex-1 py-2 text-xs font-semibold text-[#111827] bg-gray-100 border-r border-gray-200">Adjustments</button>
+            <button id="tab-layers" class="flex-1 py-2 text-xs font-semibold text-gray-500 hover:text-[#111827]">Layers</button>
+        </div>
+
+        <div id="adjust-content" class="p-4 space-y-4">
+            <div>
+                <div class="flex justify-between text-xs font-medium text-gray-500 mb-1"><span>Opacity</span><span class="text-[#22c55e]">●</span></div>
+                <input id="opacity-slider" type="range" min="0" max="1" step="0.01" value="1">
+            </div>
+            <div>
+                <div class="flex justify-between text-xs font-medium text-gray-500 mb-1"><span>Brightness</span><span>☀</span></div>
+                <input id="brightness-slider" type="range" min="0" max="2" step="0.01" value="1">
+            </div>
+            <div>
+                <div class="flex justify-between text-xs font-medium text-gray-500 mb-1"><span>Contrast</span><span>◐</span></div>
+                <input id="contrast-slider" type="range" min="0" max="2" step="0.01" value="1">
+            </div>
+        </div>
+
+        <div id="layers-content" class="p-3 hidden">
+            <div class="flex items-center justify-between mb-2 pb-2 border-b border-gray-100">
+                <h5 class="text-xs font-bold text-gray-400 uppercase">Order</h5>
+                <div class="flex gap-1">
+                    <button onclick="bringForward()" title="Up" class="p-1 text-gray-600 hover:bg-gray-100 rounded"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg></button>
+                    <button onclick="sendBackward()" title="Down" class="p-1 text-gray-600 hover:bg-gray-100 rounded"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button>
+                </div>
+            </div>
+            <ul id="layers-list" class="text-sm space-y-1 max-h-48 overflow-y-auto"></ul>
+        </div>
+    </div>
+
+ <script>
+const featureAssets = {
+    "beard": [
+        "facial_parts_new/beard/beard-1.png",
+        "facial_parts_new/beard/beard-10.png",
+        "facial_parts_new/beard/beard-11.png",
+        "facial_parts_new/beard/beard-12.png",
+        "facial_parts_new/beard/beard-13.png",
+        "facial_parts_new/beard/beard-14.png",
+        "facial_parts_new/beard/beard-2.png",
+        "facial_parts_new/beard/beard-3.png",
+        "facial_parts_new/beard/beard-4.png",
+        "facial_parts_new/beard/beard-5.png",
+        "facial_parts_new/beard/beard-6.png",
+        "facial_parts_new/beard/beard-7.png",
+        "facial_parts_new/beard/beard-8.png",
+        "facial_parts_new/beard/beard-9.png"
+    ],
+    "cheek": [
+        "facial_parts_new/cheek/cheek-1.png",
+        "facial_parts_new/cheek/cheek-2.png",
+        "facial_parts_new/cheek/cheek-3.png",
+        "facial_parts_new/cheek/cheek-4.png",
+        "facial_parts_new/cheek/cheek-5.png",
+        "facial_parts_new/cheek/cheek-6.png"
+    ],
+    "ears": [
+        "facial_parts_new/ears/downturnedeyes.png",
+        "facial_parts_new/ears/ear-1.png",
+        "facial_parts_new/ears/ear-2.png",
+        "facial_parts_new/ears/ear-3.png",
+        "facial_parts_new/ears/ear-4.png",
+        "facial_parts_new/ears/ear-5.png",
+        "facial_parts_new/ears/ear-6.png"
+    ],
+    "eyebrows": [
+        "facial_parts_new/eyebrows/basic.png",
+        "facial_parts_new/eyebrows/bold.png",
+        "facial_parts_new/eyebrows/curvetip.png",
+        "facial_parts_new/eyebrows/eyebrows-1.png",
+        "facial_parts_new/eyebrows/eyebrows-10.png",
+        "facial_parts_new/eyebrows/eyebrows-11.png",
+        "facial_parts_new/eyebrows/eyebrows-12.png",
+        "facial_parts_new/eyebrows/eyebrows-13.png",
+        "facial_parts_new/eyebrows/eyebrows-14.png",
+        "facial_parts_new/eyebrows/eyebrows-15.png",
+        "facial_parts_new/eyebrows/eyebrows-16.png",
+        "facial_parts_new/eyebrows/eyebrows-17.png",
+        "facial_parts_new/eyebrows/eyebrows-18.png",
+        "facial_parts_new/eyebrows/eyebrows-19.png",
+        "facial_parts_new/eyebrows/eyebrows-2.png",
+        "facial_parts_new/eyebrows/eyebrows-20.png",
+        "facial_parts_new/eyebrows/eyebrows-21.png",
+        "facial_parts_new/eyebrows/eyebrows-22.png",
+        "facial_parts_new/eyebrows/eyebrows-3.png",
+        "facial_parts_new/eyebrows/eyebrows-4.png",
+        "facial_parts_new/eyebrows/eyebrows-5.png",
+        "facial_parts_new/eyebrows/eyebrows-6.png",
+        "facial_parts_new/eyebrows/eyebrows-7.png",
+        "facial_parts_new/eyebrows/eyebrows-8.png",
+        "facial_parts_new/eyebrows/eyebrows-9.png",
+        "facial_parts_new/eyebrows/flatwide.png",
+        "facial_parts_new/eyebrows/hardangled.png",
+        "facial_parts_new/eyebrows/lifted.png",
+        "facial_parts_new/eyebrows/lightarched.png",
+        "facial_parts_new/eyebrows/slightcurved.png",
+        "facial_parts_new/eyebrows/slightlyarched.png",
+        "facial_parts_new/eyebrows/slim.png",
+        "facial_parts_new/eyebrows/soft.png",
+        "facial_parts_new/eyebrows/softangled.png",
+        "facial_parts_new/eyebrows/straight.png",
+        "facial_parts_new/eyebrows/thick.png",
+        "facial_parts_new/eyebrows/thin.png",
+        "facial_parts_new/eyebrows/upward.png"
+    ],
+    "eyes": [
+        "facial_parts_new/eyes/eyes-1.png",
+        "facial_parts_new/eyes/eyes-10.png",
+        "facial_parts_new/eyes/eyes-11.png",
+        "facial_parts_new/eyes/eyes-12.png",
+        "facial_parts_new/eyes/eyes-13.png",
+        "facial_parts_new/eyes/eyes-14.png",
+        "facial_parts_new/eyes/eyes-15.png",
+        "facial_parts_new/eyes/eyes-16.png",
+        "facial_parts_new/eyes/eyes-17.png",
+        "facial_parts_new/eyes/eyes-18.png",
+        "facial_parts_new/eyes/eyes-19.png",
+        "facial_parts_new/eyes/eyes-2.png",
+        "facial_parts_new/eyes/eyes-20.png",
+        "facial_parts_new/eyes/eyes-21.png",
+        "facial_parts_new/eyes/eyes-22.png",
+        "facial_parts_new/eyes/eyes-23.png",
+        "facial_parts_new/eyes/eyes-24.png",
+        "facial_parts_new/eyes/eyes-3.png",
+        "facial_parts_new/eyes/eyes-4.png",
+        "facial_parts_new/eyes/eyes-5.png",
+        "facial_parts_new/eyes/eyes-6.png",
+        "facial_parts_new/eyes/eyes-7.png",
+        "facial_parts_new/eyes/eyes-8.png",
+        "facial_parts_new/eyes/eyes-9.png",
+        "facial_parts_new/eyes/resize-ik-eyes.png"
+    ],
+    "face": [
+        "facial_parts_new/face/diamondface.png",
+        "facial_parts_new/face/face-1.png",
+        "facial_parts_new/face/face-10.png",
+        "facial_parts_new/face/face-11.png",
+        "facial_parts_new/face/face-12.png",
+        "facial_parts_new/face/face-13.png",
+        "facial_parts_new/face/face-14.png",
+        "facial_parts_new/face/face-15.png",
+        "facial_parts_new/face/face-16.png",
+        "facial_parts_new/face/face-17.png",
+        "facial_parts_new/face/face-18.png",
+        "facial_parts_new/face/face-19.png",
+        "facial_parts_new/face/face-2.png",
+        "facial_parts_new/face/face-20.png",
+        "facial_parts_new/face/face-21.png",
+        "facial_parts_new/face/face-22.png",
+        "facial_parts_new/face/face-23.png",
+        "facial_parts_new/face/face-24.png",
+        "facial_parts_new/face/face-3.png",
+        "facial_parts_new/face/face-4.png",
+        "facial_parts_new/face/face-5.png",
+        "facial_parts_new/face/face-6.png",
+        "facial_parts_new/face/face-7.png",
+        "facial_parts_new/face/face-8.png",
+        "facial_parts_new/face/face-9.png",
+        "facial_parts_new/face/oblongface.png",
+        "facial_parts_new/face/ovalface.png",
+        "facial_parts_new/face/rectangleface.png",
+        "facial_parts_new/face/roundedgeface.png",
+        "facial_parts_new/face/roundface.png",
+        "facial_parts_new/face/squareovalface.png",
+        "facial_parts_new/face/triangleface.png"
+    ],
+    "forehead": [
+        "facial_parts_new/forehead/forehead-1.png",
+        "facial_parts_new/forehead/forehead-2.png",
+        "facial_parts_new/forehead/forehead-3.png",
+        "facial_parts_new/forehead/forehead-4.png",
+        "facial_parts_new/forehead/forehead-5.png",
+        "facial_parts_new/forehead/forehead-6.png",
+        "facial_parts_new/forehead/forehead-7.png"
+    ],
+    "hairstyle": [
+        "facial_parts_new/hairstyle/hairstyle-1.png",
+        "facial_parts_new/hairstyle/hairstyle-10.png",
+        "facial_parts_new/hairstyle/hairstyle-11.png",
+        "facial_parts_new/hairstyle/hairstyle-12.png",
+        "facial_parts_new/hairstyle/hairstyle-13.png",
+        "facial_parts_new/hairstyle/hairstyle-14.png",
+        "facial_parts_new/hairstyle/hairstyle-15.png",
+        "facial_parts_new/hairstyle/hairstyle-16.png",
+        "facial_parts_new/hairstyle/hairstyle-17.png",
+        "facial_parts_new/hairstyle/hairstyle-18.png",
+        "facial_parts_new/hairstyle/hairstyle-19.png",
+        "facial_parts_new/hairstyle/hairstyle-2.png",
+        "facial_parts_new/hairstyle/hairstyle-20.png",
+        "facial_parts_new/hairstyle/hairstyle-21.png",
+        "facial_parts_new/hairstyle/hairstyle-22.png",
+        "facial_parts_new/hairstyle/hairstyle-23.png",
+        "facial_parts_new/hairstyle/hairstyle-24.png",
+        "facial_parts_new/hairstyle/hairstyle-25.png",
+        "facial_parts_new/hairstyle/hairstyle-26.png",
+        "facial_parts_new/hairstyle/hairstyle-27.png",
+        "facial_parts_new/hairstyle/hairstyle-28.png",
+        "facial_parts_new/hairstyle/hairstyle-29.png",
+        "facial_parts_new/hairstyle/hairstyle-3.png",
+        "facial_parts_new/hairstyle/hairstyle-30.png",
+        "facial_parts_new/hairstyle/hairstyle-31.png",
+        "facial_parts_new/hairstyle/hairstyle-32.png",
+        "facial_parts_new/hairstyle/hairstyle-33.png",
+        "facial_parts_new/hairstyle/hairstyle-34.png",
+        "facial_parts_new/hairstyle/hairstyle-35.png",
+        "facial_parts_new/hairstyle/hairstyle-36.png",
+        "facial_parts_new/hairstyle/hairstyle-37.png",
+        "facial_parts_new/hairstyle/hairstyle-38.png",
+        "facial_parts_new/hairstyle/hairstyle-39.png",
+        "facial_parts_new/hairstyle/hairstyle-4.png",
+        "facial_parts_new/hairstyle/hairstyle-40.png",
+        "facial_parts_new/hairstyle/hairstyle-41.png",
+        "facial_parts_new/hairstyle/hairstyle-42.png",
+        "facial_parts_new/hairstyle/hairstyle-43.png",
+        "facial_parts_new/hairstyle/hairstyle-44.png",
+        "facial_parts_new/hairstyle/hairstyle-45.png",
+        "facial_parts_new/hairstyle/hairstyle-46.png",
+        "facial_parts_new/hairstyle/hairstyle-47.png",
+        "facial_parts_new/hairstyle/hairstyle-48.png",
+        "facial_parts_new/hairstyle/hairstyle-49.png",
+        "facial_parts_new/hairstyle/hairstyle-5.png",
+        "facial_parts_new/hairstyle/hairstyle-50.png",
+        "facial_parts_new/hairstyle/hairstyle-51.png",
+        "facial_parts_new/hairstyle/hairstyle-52.png",
+        "facial_parts_new/hairstyle/hairstyle-53.png",
+        "facial_parts_new/hairstyle/hairstyle-54.png",
+        "facial_parts_new/hairstyle/hairstyle-55.png",
+        "facial_parts_new/hairstyle/hairstyle-56.png",
+        "facial_parts_new/hairstyle/hairstyle-57.png",
+        "facial_parts_new/hairstyle/hairstyle-58.png",
+        "facial_parts_new/hairstyle/hairstyle-6.png",
+        "facial_parts_new/hairstyle/hairstyle-7.png",
+        "facial_parts_new/hairstyle/hairstyle-8.png",
+        "facial_parts_new/hairstyle/hairstyle-9.png"
+    ],
+    "head": [
+        "facial_parts_new/head/01.png",
+        "facial_parts_new/head/02.png",
+        "facial_parts_new/head/03.png",
+        "facial_parts_new/head/04.png",
+        "facial_parts_new/head/05.png",
+        "facial_parts_new/head/06.png",
+        "facial_parts_new/head/07.png",
+        "facial_parts_new/head/08.png",
+        "facial_parts_new/head/09.png",
+        "facial_parts_new/head/10.png",
+        "facial_parts_new/head/Group 1.png",
+        "facial_parts_new/head/Group 10.png",
+        "facial_parts_new/head/Group 2.png",
+        "facial_parts_new/head/Group 3.png",
+        "facial_parts_new/head/Group 4.png",
+        "facial_parts_new/head/Group 5.png",
+        "facial_parts_new/head/Group 6.png",
+        "facial_parts_new/head/Group 7.png",
+        "facial_parts_new/head/Group 8.png",
+        "facial_parts_new/head/Group 9.png",
+        "facial_parts_new/head/resize-ik-face.png"
+    ],
+    "lips": [
+        "facial_parts_new/lips/5.png",
+        "facial_parts_new/lips/bottomheavylips.png",
+        "facial_parts_new/lips/bowshapedlips.png",
+        "facial_parts_new/lips/cupidbowlips.png",
+        "facial_parts_new/lips/fullips.png",
+        "facial_parts_new/lips/heartshapedlips.png",
+        "facial_parts_new/lips/lips-1.png",
+        "facial_parts_new/lips/lips-10.png",
+        "facial_parts_new/lips/lips-11.png",
+        "facial_parts_new/lips/lips-12.png",
+        "facial_parts_new/lips/lips-13.png",
+        "facial_parts_new/lips/lips-14.png",
+        "facial_parts_new/lips/lips-2.png",
+        "facial_parts_new/lips/lips-3.png",
+        "facial_parts_new/lips/lips-4.png",
+        "facial_parts_new/lips/lips-5.png",
+        "facial_parts_new/lips/lips-6.png",
+        "facial_parts_new/lips/lips-7.png",
+        "facial_parts_new/lips/lips-8.png",
+        "facial_parts_new/lips/lips-9.png",
+        "facial_parts_new/lips/mediumlips.png",
+        "facial_parts_new/lips/o.png",
+        "facial_parts_new/lips/resize-ik-lips.png",
+        "facial_parts_new/lips/roundlips.png",
+        "facial_parts_new/lips/straightthinlips.png",
+        "facial_parts_new/lips/thinlips.png",
+        "facial_parts_new/lips/topheavylips.png",
+        "facial_parts_new/lips/upperflatlips.png"
+    ],
+    "mustache": [
+        "facial_parts_new/mustache/chevronmustache.png",
+        "facial_parts_new/mustache/fullheavymustache.png",
+        "facial_parts_new/mustache/irregularmustache.png",
+        "facial_parts_new/mustache/mediummustache.png",
+        "facial_parts_new/mustache/naturalmustache.png",
+        "facial_parts_new/mustache/partedmustache.png",
+        "facial_parts_new/mustache/pencilmustache.png",
+        "facial_parts_new/mustache/thinmustache.png"
+    ],
+    "nose": [
+        "facial_parts_new/nose/broadnose.png",
+        "facial_parts_new/nose/bulbousnose.png",
+        "facial_parts_new/nose/bumpynose.png",
+        "facial_parts_new/nose/compactnose.png",
+        "facial_parts_new/nose/flattipnose.png",
+        "facial_parts_new/nose/fleshynose.png",
+        "facial_parts_new/nose/hawknose.png",
+        "facial_parts_new/nose/lowbridgenose.png",
+        "facial_parts_new/nose/mediumwidenose.png",
+        "facial_parts_new/nose/narrowbridge.png",
+        "facial_parts_new/nose/nose-1.png",
+        "facial_parts_new/nose/nose-2.png",
+        "facial_parts_new/nose/nose-3.png",
+        "facial_parts_new/nose/nose-4.png",
+        "facial_parts_new/nose/nose-5.png",
+        "facial_parts_new/nose/nose-6.png",
+        "facial_parts_new/nose/nose-7.png",
+        "facial_parts_new/nose/nose-8.png",
+        "facial_parts_new/nose/resize-iik-nose.png",
+        "facial_parts_new/nose/romannose.png",
+        "facial_parts_new/nose/roundtip.png",
+        "facial_parts_new/nose/slimbridgenose.png",
+        "facial_parts_new/nose/snub_tip-upturned_nostrils-flared_length-short.png",
+        "facial_parts_new/nose/softnose.png",
+        "facial_parts_new/nose/straightnose.png",
+        "facial_parts_new/nose/tiltnose.png",
+        "facial_parts_new/nose/turnedupnose.png",
+        "facial_parts_new/nose/widenose.png"
+    ]
+};
+        const canvasArea = document.getElementById('canvas-area');
+        const optionsGrid = document.getElementById('options-grid');
+        const optionsLabel = document.getElementById('options-label');
+        let activeElement = null;
+        let zIndexCounter = 10;
+        let currentCategory = 'head';
+
+        let historyStack = [];
+        let historyIndex = -1;
+        const undoBtn = document.getElementById('undo-btn');
+        const redoBtn = document.getElementById('redo-btn');
+        const statusDiv = document.getElementById('status');
+        const micButton = document.getElementById('mic-button');
+        let recognition = null;
+        let isListening = false;
+        
+        function saveState() { if (historyIndex < historyStack.length - 1) { historyStack = historyStack.slice(0, historyIndex + 1); } historyStack.push(canvasArea.innerHTML); historyIndex++; updateUndoRedoButtons(); updateLayersPanel(); }
+        function restoreState(index) { canvasArea.innerHTML = historyStack[index]; rebindAllEvents(); updateUndoRedoButtons(); updateLayersPanel(); }
+        function undo() { if (historyIndex > 0) { historyIndex--; restoreState(historyIndex); } }
+        function redo() { if (historyIndex < historyStack.length - 1) { historyIndex++; restoreState(historyIndex); } }
+        function updateUndoRedoButtons() { undoBtn.disabled = historyIndex <= 0; redoBtn.disabled = historyIndex >= historyStack.length - 1; }
+
+        function rebindAllEvents() {
+            document.querySelectorAll('.feature-container').forEach(el => {
+                makeDraggable(el);
+                makeResizable(el, el.querySelector('.resize-handle'));
+                el.addEventListener('click', (e) => { e.stopPropagation(); makeActive(el) });
+            });
+            const activeId = activeElement ? activeElement.id : null;
+            if (activeId) {
+                const newActiveElement = document.getElementById(activeId);
+                if (newActiveElement) makeActive(newActiveElement);
+            }
+        }
+        
+        function updateLayersPanel() {
+            const layersList = document.getElementById('layers-list');
+            layersList.innerHTML = '';
+            const elements = Array.from(document.querySelectorAll('.feature-container'));
+            elements.sort((a, b) => parseInt(b.style.zIndex || 0) - parseInt(a.style.zIndex || 0));
+            elements.forEach(el => {
+                const li = document.createElement('li');
+                li.className = 'p-2 rounded cursor-pointer hover:bg-gray-100 flex items-center gap-2 border border-transparent hover:border-gray-200 transition-colors';
+                li.textContent = getDisplayName(el.querySelector('img').src);
+                if (el.classList.contains('active')) { li.classList.add('bg-green-50', 'text-green-700', 'border-green-200'); }
+                li.onclick = () => makeActive(el);
+                layersList.appendChild(li);
+            });
+        }
+        
+        function getDisplayName(filePath) { const filename = filePath.split('/').pop(); return filename.substring(0, filename.lastIndexOf('.')).replace(/[-_]/g, ' '); }
+        
+        function showCategory(category) {
+            currentCategory = category;
+            document.querySelectorAll('.sidebar-btn').forEach(btn => btn.classList.remove('active'));
+            const currentBtn = document.querySelector(`.sidebar-btn[data-category="${category}"]`);
+            if (currentBtn) currentBtn.classList.add('active');
+            optionsGrid.innerHTML = ''; 
+            optionsLabel.textContent = `Choose ${category}`;
+            const images = featureAssets[category] || [];
+            if (images.length === 0) { optionsGrid.innerHTML = `<p class="col-span-3 text-center text-gray-400 text-xs italic">No items found.</p>`; return; }
+            images.forEach(imgPath => {
+                const displayName = getDisplayName(imgPath);
+                const thumbContainer = document.createElement('div');
+                thumbContainer.className = 'relative bg-white p-2 rounded-lg border border-gray-200 hover:border-green-400 hover:shadow-md cursor-pointer transition-all duration-200 group';
+                thumbContainer.onclick = () => addFeature(imgPath);
+                const thumb = document.createElement('img');
+                thumb.src = imgPath;
+                thumb.className = 'w-full h-auto object-contain max-h-20 mx-auto';
+                thumbContainer.appendChild(thumb);
+                optionsGrid.appendChild(thumbContainer);
+            });
+        }
+        
+        function addFeature(imgPath) {
+            const container = document.createElement('div');
+            container.id = `feature-${Date.now()}`;
+            container.className = 'feature-container absolute cursor-move';
+            container.dataset.category = currentCategory;
+            container.style.left = '150px'; container.style.top = '150px'; container.style.width = '150px';
+            const img = document.createElement('img');
+            img.src = imgPath;
+            img.className = 'w-full h-full pointer-events-none select-none';
+            container.appendChild(img);
+            const resizeHandle = document.createElement('div');
+            resizeHandle.className = 'resize-handle w-3 h-3 bg-green-500 border border-white rounded-full absolute -right-1.5 -bottom-1.5 cursor-se-resize shadow-sm';
+            container.appendChild(resizeHandle);
+            canvasArea.appendChild(container);
+            makeDraggable(container);
+            makeResizable(container, resizeHandle);
+            container.addEventListener('click', (e) => { e.stopPropagation(); makeActive(container) });
+            makeActive(container);
+            saveState();
+        }
+
+        function deleteActiveElement() { if (activeElement) { activeElement.remove(); activeElement = null; saveState(); } }
+        
+        function resetCanvas() { document.querySelectorAll('.feature-container').forEach(el => el.remove()); activeElement = null; zIndexCounter = 10; saveState(); }
+
+        function makeDraggable(element) {
+            let p3=0, p4=0;
+            element.onmousedown = e => {
+                if (e.target !== element) return;
+                e.preventDefault(); e.stopPropagation(); p3 = e.clientX; p4 = e.clientY;
+                document.onmouseup = () => { document.onmouseup = null; document.onmousemove = null; saveState(); };
+                document.onmousemove = de => { de.preventDefault(); const p1 = p3 - de.clientX, p2 = p4 - de.clientY; p3 = de.clientX; p4 = de.clientY; element.style.top = (element.offsetTop - p2) + "px"; element.style.left = (element.offsetLeft - p1) + "px"; };
+                makeActive(element);
+            };
+        }
+
+        function makeResizable(element, handle) {
+            handle.addEventListener('mousedown', function(e) {
+                e.preventDefault(); e.stopPropagation(); let sx = e.clientX, sy = e.clientY, sw = element.offsetWidth, sh = element.offsetHeight;
+                const doResize = de => { element.style.width = (sw + de.clientX - sx) + 'px'; element.style.height = (sh + de.clientY - sy) + 'px'; };
+                const stopResize = () => { window.removeEventListener('mousemove', doResize); window.removeEventListener('mouseup', stopResize); saveState(); };
+                window.addEventListener('mousemove', doResize);
+                window.addEventListener('mouseup', stopResize);
+            });
+        }
+
+        function makeActive(element) {
+            if (activeElement) { activeElement.classList.remove('active'); }
+            activeElement = element;
+            if (activeElement) {
+                activeElement.classList.add('active');
+                activeElement.style.zIndex = zIndexCounter++;
+                updateAdjustmentPanel();
+                updateLayersPanel();
+            } else {
+               // Optional: Auto hide panel if nothing selected
+            }
+        }
+        
+        const adjustmentPanel = document.getElementById('adjustment-panel');
+        const panelHeader = document.getElementById('panel-header');
+        
+        makePanelDraggable(adjustmentPanel, panelHeader);
+        function makePanelDraggable(panel, header) {
+            let p3=0, p4=0;
+            header.onmousedown = e => { e.preventDefault(); p3 = e.clientX; p4 = e.clientY; document.onmouseup = () => { document.onmouseup = null; document.onmousemove = null; }; document.onmousemove = de => { de.preventDefault(); const p1 = p3 - de.clientX, p2 = p4 - de.clientY; p3 = de.clientX; p4 = de.clientY; panel.style.top = (panel.offsetTop - p2) + "px"; panel.style.left = (panel.offsetLeft - p1) + "px"; }; };
+        }
+
+        document.getElementById('tab-adjust').onclick = () => { document.getElementById('adjust-content').classList.remove('hidden'); document.getElementById('layers-content').classList.add('hidden'); document.getElementById('tab-adjust').classList.add('bg-gray-100', 'text-[#111827]'); document.getElementById('tab-adjust').classList.remove('text-gray-500'); document.getElementById('tab-layers').classList.remove('bg-gray-100', 'text-[#111827]'); document.getElementById('tab-layers').classList.add('text-gray-500'); };
+        document.getElementById('tab-layers').onclick = () => { document.getElementById('adjust-content').classList.add('hidden'); document.getElementById('layers-content').classList.remove('hidden'); document.getElementById('tab-layers').classList.add('bg-gray-100', 'text-[#111827]'); document.getElementById('tab-layers').classList.remove('text-gray-500'); document.getElementById('tab-adjust').classList.remove('bg-gray-100', 'text-[#111827]'); document.getElementById('tab-adjust').classList.add('text-gray-500'); };
+
+        const sliders = { opacity: document.getElementById('opacity-slider'), brightness: document.getElementById('brightness-slider'), contrast: document.getElementById('contrast-slider'), saturation: document.getElementById('saturation-slider') || document.createElement('input') }; // Saturation fallback if removed from DOM
+        function applyFilters() { if (!activeElement) return; const img = activeElement.querySelector('img'); img.style.opacity = sliders.opacity.value; img.style.filter = `brightness(${sliders.brightness.value}) contrast(${sliders.contrast.value})`; /* Saturation removed for simplicity or add back if needed */ }
+        function updateAdjustmentPanel() { if (!activeElement) return; const img = activeElement.querySelector('img'); sliders.opacity.value = img.style.opacity || 1; const filter = img.style.filter; sliders.brightness.value = filter.match(/brightness\((\d*\.?\d*)\)/)?.[1] || 1; sliders.contrast.value = filter.match(/contrast\((\d*\.?\d*)\)/)?.[1] || 1; }
+        Object.values(sliders).forEach(slider => { slider.oninput = applyFilters; slider.onchange = saveState; });
+        
+        function toggleAdjustmentsPanel() {
+            const panel = document.getElementById('adjustment-panel');
+            panel.classList.toggle('hidden');
+            if (!panel.classList.contains('hidden') && activeElement) {
+                updateAdjustmentPanel();
+                updateLayersPanel();
+            }
+        }
+
+        function getSortedLayers() {
+            const elements = Array.from(document.querySelectorAll('.feature-container'));
+            return elements.sort((a, b) => (parseInt(a.style.zIndex) || 0) - (parseInt(b.style.zIndex) || 0));
+        }
+
+        function bringForward() {
+            if (!activeElement) return;
+            const layers = getSortedLayers();
+            const currentIndex = layers.findIndex(el => el.id === activeElement.id);
+            if (currentIndex < layers.length - 1) {
+                const nextElement = layers[currentIndex + 1];
+                const currentZ = activeElement.style.zIndex;
+                activeElement.style.zIndex = nextElement.style.zIndex;
+                nextElement.style.zIndex = currentZ;
+                saveState();
+            }
+        }
+
+        function sendBackward() {
+            if (!activeElement) return;
+            const layers = getSortedLayers();
+            const currentIndex = layers.findIndex(el => el.id === activeElement.id);
+            if (currentIndex > 0) {
+                const prevElement = layers[currentIndex - 1];
+                const currentZ = activeElement.style.zIndex;
+                activeElement.style.zIndex = prevElement.style.zIndex;
+                prevElement.style.zIndex = currentZ;
+                saveState();
+            }
+        }
+        
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+            recognition.onstart = () => { isListening = true; statusDiv.textContent = 'Listening...'; micButton.classList.add('listening'); };
+            recognition.onend = () => { isListening = false; if (statusDiv.textContent === 'Listening...') { statusDiv.textContent = 'Click the mic to speak...'; } micButton.classList.remove('listening'); };
+            recognition.onerror = (event) => { console.error('Speech recognition error:', event.error); statusDiv.textContent = 'Error: ' + event.error; };
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) { finalTranscript += event.results[i][0].transcript; } else { interimTranscript += event.results[i][0].transcript; }
+                }
+                if (interimTranscript) { statusDiv.textContent = interimTranscript; }
+                if (finalTranscript) {
+                    setTimeout(() => {
+                        statusDiv.textContent = `Processing: "${finalTranscript.trim()}"`;
+                        parseCommand(finalTranscript.trim().toLowerCase());
+                    }, 250);
+                }
+            };
+        } else {
+            statusDiv.textContent = "Voice commands not supported.";
+            micButton.disabled = true;
+        }
+
+        function toggleListening() { if (isListening) { recognition.stop(); } else { try { recognition.start(); } catch(e) { console.error("Could not start recognition:", e); } } }
+        
+        function parseCommand(command) {
+            // (Keep your existing voice parsing logic here - it's fine)
+            if (command.includes('undo')) { executeAction({ action: 'undo' }); return; }
+            if (command.includes('redo')) { executeAction({ action: 'redo' }); return; }
+            if (command.includes('show adjustments') || command.includes('open panel')) { executeAction({ action: 'toggle_panel', parameter: 'show' }); return; }
+            if (command.includes('hide adjustments') || command.includes('close panel')) { executeAction({ action: 'toggle_panel', parameter: 'hide' }); return; }
+            if (command.includes('reset')) { executeAction({ action: 'reset' }); return; }
+            if (command.includes('bring forward') || command.includes('move forward')) { executeAction({ action: 'layer', target: activeElement, parameter: 'forward' }); return; }
+            if (command.includes('send backward') || command.includes('move backward')) { executeAction({ action: 'layer', target: activeElement, parameter: 'backward' }); return; }
+
+            const actions = { select: ['select', 'add', 'place'], move: ['move'], make: ['make', 'change', 'adjust'], delete: ['delete', 'remove'] };
+            let action = Object.keys(actions).find(key => actions[key].some(alias => command.startsWith(alias)));
+            
+            if (!action) { statusDiv.textContent = "Unknown action."; return; }
+
+            let targetCategory = Object.keys(featureAssets).find(cat => command.includes(cat) || command.includes(cat.slice(0, -1)));
+            let parameter = null;
+
+            if (action === 'select') {
+                if (!targetCategory) { statusDiv.textContent = "Which category?"; return; }
+                const assetList = featureAssets[targetCategory];
+                const remainingCommand = command.replace(action, '').replace(targetCategory, '').trim();
+                const numMatch = remainingCommand.match(/\d+/);
+                if (numMatch) {
+                    const itemIndex = parseInt(numMatch[0], 10) - 1;
+                    if (assetList[itemIndex]) parameter = assetList[itemIndex];
+                }
+                if (!parameter) parameter = assetList.find(path => getDisplayName(path).includes(remainingCommand));
+                if (!parameter) { statusDiv.textContent = `Couldn't find "${remainingCommand}".`; return; }
+                executeAction({ action: 'select', target: targetCategory, parameter: parameter });
+            } else {
+                let targetElement = targetCategory ? document.querySelector(`.feature-container[data-category="${targetCategory}"]`) : activeElement;
+                if (!targetElement) { statusDiv.textContent = `Please select or specify an item to ${action}.`; return; }
+                
+                if (action === 'move') {
+                    if (command.includes('left')) parameter = 'left'; else if (command.includes('right')) parameter = 'right'; else if (command.includes('up')) parameter = 'up'; else if (command.includes('down')) parameter = 'down';
+                } else if (action === 'make') {
+                    const adjustments = ['opacity', 'brightness', 'contrast', 'saturation'];
+                    let adjustmentProp = adjustments.find(prop => command.includes(prop));
+                    if (adjustmentProp) {
+                        action = 'adjust';
+                        let value = null;
+                        if (command.includes('increase') || command.includes('raise')) value = 'increase';
+                        else if (command.includes('decrease') || command.includes('lower')) value = 'decrease';
+                        else {
+                            const numMatch = command.match(/(\d*\.?\d+)/);
+                            if (numMatch) value = parseFloat(numMatch[0]);
+                        }
+                        parameter = { property: adjustmentProp, value: value };
+                    } else {
+                         if (command.includes('bigger')) parameter = 'bigger'; else if (command.includes('smaller')) parameter = 'smaller';
+                    }
+                }
+                executeAction({ action, target: targetElement, parameter });
+            }
+        }
+
+        function executeAction({ action, target, parameter }) {
+            switch (action) {
+                case 'select': currentCategory = target; addFeature(parameter); statusDiv.textContent = `Placed ${getDisplayName(parameter)}.`; break;
+                case 'reset': resetCanvas(); statusDiv.textContent = 'Canvas reset.'; break;
+                case 'undo': undo(); statusDiv.textContent = 'Undo complete.'; break;
+                case 'redo': redo(); statusDiv.textContent = 'Redo complete.'; break;
+                case 'toggle_panel':
+                    const panel = document.getElementById('adjustment-panel');
+                    if (parameter === 'show' && panel.classList.contains('hidden')) toggleAdjustmentsPanel();
+                    else if (parameter === 'hide' && !panel.classList.contains('hidden')) toggleAdjustmentsPanel();
+                    break;
+                case 'move': makeActive(target); const moveAmount = 30; if (parameter === 'left') target.style.left = `${target.offsetLeft - moveAmount}px`; else if (parameter === 'right') target.style.left = `${target.offsetLeft + moveAmount}px`; else if (parameter === 'up') target.style.top = `${target.offsetTop - moveAmount}px`; else if (parameter === 'down') target.style.top = `${target.offsetTop + moveAmount}px`; saveState(); break;
+                case 'make': makeActive(target); const scale = (parameter === 'bigger') ? 1.2 : 0.8; target.style.width = `${target.offsetWidth * scale}px`; target.style.height = `${target.offsetHeight * scale}px`; saveState(); break;
+                case 'adjust':
+                    makeActive(target);
+                    const slider = sliders[parameter.property];
+                    if (!slider) return;
+                    let currentValue = parseFloat(slider.value);
+                    const step = slider.step ? parseFloat(slider.step) : 0.1;
+                    if (parameter.value === 'increase') slider.value = Math.min(parseFloat(slider.max), currentValue + step * 5);
+                    else if (parameter.value === 'decrease') slider.value = Math.max(parseFloat(slider.min), currentValue - step * 5);
+                    else if (typeof parameter.value === 'number') slider.value = parameter.value;
+                    applyFilters();
+                    saveState();
+                    statusDiv.textContent = `Set ${parameter.property}.`;
+                    break;
+                case 'delete': makeActive(target); deleteActiveElement(); statusDiv.textContent = `Removed the ${target.dataset.category}.`; break;
+                case 'layer':
+                    if (!target) { statusDiv.textContent = 'Please select an item to move.'; return; }
+                    if (parameter === 'forward') bringForward();
+                    if (parameter === 'backward') sendBackward();
+                    statusDiv.textContent = `Layer order updated.`;
+                    break;
+            }
+        }
+        
+        async function saveSketch() { if (activeElement) activeElement.classList.remove('active'); const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); const bounds = canvasArea.getBoundingClientRect(); canvas.width = bounds.width; canvas.height = bounds.height; ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height); const features = Array.from(canvasArea.querySelectorAll('.feature-container')); const promises = features.map(f => new Promise(resolve => { const img = f.querySelector('img'), image = new Image(); image.crossOrigin = "Anonymous"; image.src = img.src; image.onload = () => { const style = window.getComputedStyle(f); ctx.globalAlpha = img.style.opacity || 1; ctx.filter = img.style.filter || 'none'; ctx.drawImage(image, parseInt(style.left), parseInt(style.top), parseInt(style.width), parseInt(style.height)); resolve(); }; image.onerror = () => resolve(); })); await Promise.all(promises); const link = document.createElement('a'); link.download = 'voxsketch-composition.png'; link.href = canvas.toDataURL('image/png'); link.click(); }
+        canvasArea.addEventListener('click', e => { if (e.target === canvasArea && activeElement) { makeActive(null); } });
+        document.addEventListener('keydown', e => { if ((e.key === 'Delete' || e.key === 'Backspace') && activeElement) { deleteActiveElement(); } });
+        
+        window.onload = () => {
+            showCategory('head');
+            saveState();
+        };
+    </script>
+</body>
+</html>

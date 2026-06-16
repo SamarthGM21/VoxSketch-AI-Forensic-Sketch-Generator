@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Interview Mode | VoxSketch</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+        
+        /* Animations */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-up { animation: fadeUp 0.6s ease-out forwards; }
+
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        .mic-active { animation: pulse-green 1.5s infinite; background-color: #ef4444 !important; color: white !important; border-color: #ef4444 !important; }
+
+        /* Custom Scrollbar */
+        .options-grid::-webkit-scrollbar { width: 6px; }
+        .options-grid::-webkit-scrollbar-track { background: #f3f4f6; }
+        .options-grid::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        /* Loader for waiting state */
+        .typing-dot {
+            width: 8px; height: 8px; background: #22c55e; border-radius: 50%;
+            display: inline-block; animation: typing 1.4s infinite ease-in-out both; margin: 0 2px;
+        }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col">
+
+    <header class="bg-white/90 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
+        <nav class="container mx-auto flex justify-between items-center px-6 py-4">
+            <a href="index.html" class="flex items-center gap-2">
+                <span class="text-2xl font-bold text-[#111827]">Vox<span class="text-[#22c55e]">Sketch</span></span>
+            </a>
+            <div class="flex items-center gap-4">
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-100 px-3 py-1 rounded-full">Interview Mode</span>
+                <a href="index.html" class="text-sm font-medium text-gray-600 hover:text-[#111827]">Exit</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="flex-grow flex items-center justify-center p-6">
+        <div class="w-full max-w-6xl bg-white rounded-3xl shadow-2xl overflow-hidden grid md:grid-cols-2 min-h-[600px] border border-gray-100 animate-fade-up">
+            
+            <div class="p-8 md:p-10 flex flex-col relative">
+                
+                <div class="mb-8">
+                    <h1 class="text-3xl font-bold text-[#111827] mb-1">AI Interviewer</h1>
+                    <p class="text-sm text-gray-500">Automated Forensic Artist Assistant</p>
+                </div>
+
+                <div class="flex-grow flex flex-col justify-center mb-8">
+                    <div class="bg-gray-50 rounded-2xl p-6 border border-gray-100 shadow-inner">
+                        <h2 id="interview-prompt" class="text-xl font-semibold text-[#111827] mb-3 leading-relaxed">
+                            Click “Start Interview” to begin.
+                        </h2>
+                        
+                        <p id="transcript" class="text-gray-600 italic text-sm border-l-4 border-[#22c55e] pl-3 mb-4 min-h-[20px]"></p>
+
+                        <div id="listening-pill" class="listening-pill hidden items-center gap-2 text-[#22c55e] text-sm font-semibold bg-green-50 w-fit px-3 py-1 rounded-full">
+                            <span class="flex gap-1">
+                                <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
+                            </span>
+                            <span>Listening...</span>
+                        </div>
+                    </div>
+
+                    <div id="visual-options" class="hidden mt-6 animate-fade-up">
+                        <h3 class="text-sm font-bold text-[#111827] mb-1">Select the best match:</h3>
+                        <p class="text-xs text-gray-500 mb-3">Tap an image or say "First one", "Option 2", etc.</p>
+                        
+                        <div id="options-grid" class="options-grid grid grid-cols-3 gap-3 max-h-60 overflow-y-auto p-1">
+                            </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-4 gap-3 mt-auto">
+                    <button id="startButton" class="col-span-4 bg-[#111827] text-white py-4 rounded-xl font-semibold text-lg hover:bg-[#22c55e] hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                        <span id="startButtonLabel">Start Interview</span>
+                    </button>
+                    
+                    <button id="micButton" title="Toggle Mic" class="col-span-1 border border-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 hover:border-gray-300 transition flex flex-col items-center justify-center gap-1">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+                        <span class="text-xs">Mic</span>
+                    </button>
+
+                    <button id="undoButton" disabled class="col-span-1 border border-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 hover:border-gray-300 transition disabled:opacity-40 disabled:cursor-not-allowed">Undo</button>
+                    <button id="skipButton" disabled class="col-span-1 border border-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 hover:border-gray-300 transition disabled:opacity-40 disabled:cursor-not-allowed">Skip</button>
+                    <button id="resetButton" disabled class="col-span-1 border border-red-100 text-red-600 bg-red-50 py-3 rounded-xl font-medium hover:bg-red-100 transition disabled:opacity-40 disabled:cursor-not-allowed">Reset</button>
+                </div>
+
+                <div class="mt-4 text-center">
+                    <span id="genderTag" class="text-xs text-gray-400 font-mono bg-gray-100 px-2 py-1 rounded">Gender: not set</span>
+                </div>
+            </div>
+
+            <div class="bg-gray-100 p-8 md:p-10 flex flex-col items-center justify-center relative border-t md:border-t-0 md:border-l border-gray-200">
+                
+                <div class="absolute top-6 right-6">
+                    <span class="bg-white/80 backdrop-blur text-xs font-bold px-3 py-1 rounded-full shadow-sm text-[#111827] flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> Live Composite
+                    </span>
+                </div>
+
+                <div class="w-full max-w-sm aspect-[3/4] bg-white rounded-2xl shadow-lg flex items-center justify-center overflow-hidden relative border border-gray-200 group">
+                    <div id="preview-note" class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm text-center p-6">
+                        Sketch will appear here as the interview progresses.
+                    </div>
+                    <img id="resultImage" src="" alt="" class="w-full h-full object-contain relative z-10 hidden"> </div>
+
+                <div class="mt-8 w-full max-w-sm">
+                    <button id="downloadBtn" disabled class="w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-xl font-semibold shadow-sm hover:bg-[#111827] hover:text-white hover:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Download Sketch
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    
+    <script>
+        // Simple helper to show image when source is added (optional enhancement)
+        const img = document.getElementById('resultImage');
+        const note = document.getElementById('preview-note');
+        
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === "attributes" && mutation.attributeName === "src") {
+                    if (img.src && img.src !== window.location.href) {
+                        img.classList.remove('hidden');
+                        note.classList.add('hidden');
+                    } else {
+                        img.classList.add('hidden');
+                        note.classList.remove('hidden');
+                    }
+                }
+            });
+        });
+        observer.observe(img, { attributes: true });
+
+        // Toggle visual style for mic on click (visual only)
+        document.getElementById('micButton').addEventListener('click', function() {
+            this.classList.toggle('mic-active');
+            // Toggle the pill as well for visual feedback
+            const pill = document.getElementById('listening-pill');
+            if(this.classList.contains('mic-active')){
+                 pill.classList.remove('hidden');
+                 pill.classList.add('flex');
+            } else {
+                 pill.classList.add('hidden');
+                 pill.classList.remove('flex');
+            }
+        });
+    </script>
+</body>
+</html>
